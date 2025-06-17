@@ -1,6 +1,6 @@
 import { getExistingCalendarIdFromAirtable, saveCalendarIdToAirtable, saveEventIdToAirtable } from "./airtableActions";
 import { createGoogleCalendar, createGCEvent, hasGCEvent, updateGCEvent } from "./gcalActions";
-import { createdSessions, editedCohorts, editedSessions } from "./route";
+import { createdSessions, editedCohorts, editedSessions } from "./settings";
 import { sendSlackMessage } from "./slackActions";
 
 
@@ -169,7 +169,7 @@ async function createCalendar(session: any): Promise<any> {
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],
-    });
+    }, (editedSessions.length + createdSessions.length + 1), length);
 
     editedCohorts.push(cohortRecordId);
 
@@ -205,7 +205,7 @@ async function createEvent(session: any): Promise<any> {
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],
-    });
+    }, (editedSessions.length + createdSessions.length + 1), length);
 
     createdSessions.push(session.id);
 
@@ -234,7 +234,7 @@ async function updateEvent(session: any): Promise<any> {
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],
-    });
+    }, (editedSessions.length + createdSessions.length + 1), length);
 
     editedSessions.push(session.id);
 

@@ -1,5 +1,3 @@
-import { createdSessions, editedSessions, length } from "./route";
-
 
 export type SlackBody = {
     "calendarPublicLink"?: string,
@@ -15,7 +13,7 @@ export type SlackBody = {
 };
 
 
-export async function sendSlackMessage(type: 'event_create' | 'event_update' | 'calendar_create' | 'sync_start', body: SlackBody): Promise<void> {
+export async function sendSlackMessage(type: 'event_create' | 'event_update' | 'calendar_create' | 'sync_start', body: SlackBody, done: number, length: number): Promise<void> {
     const webhookUrl = type === 'event_create' ? process.env.EVENT_CREATE_WEBHOOK_URL :
         type === 'event_update' ? process.env.EVENT_UPDATE_WEBHOOK_URL :
             type === 'calendar_create' ? process.env.CALENDAR_CREATE_WEBHOOK_URL :
@@ -36,7 +34,7 @@ export async function sendSlackMessage(type: 'event_create' | 'event_update' | '
             body[typedKey] = (body[typedKey] as unknown as string).split(',')[0] || '';
     }
 
-    body["percentageComplete"] = (editedSessions.length + createdSessions.length + 1) + '/' + (length);
+    body["percentageComplete"] = done + '/' + (length);
 
     // console.log(`[SLACK] Sending message to ${type} webhook:`, body);
 
