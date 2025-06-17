@@ -7,7 +7,9 @@ import { sendSlackMessage } from "./slackActions";
 // SESSION SYNC CONTROLS
 
 export async function syncSession(session: any) {
-    const { id, fields } = session;
+    let { id, fields } = session;
+
+    // console.log(`[SYNC] Syncing session ${id} with fields:`, fields);
 
     if (!fields || !fields.Date || isNaN(new Date(fields.Date).getTime()) || !fields.Title || !fields.Description)
         return console.error(`[SYNC] Session ${id} is missing required fields. Skipping sync.`);
@@ -26,13 +28,10 @@ export async function syncSession(session: any) {
 
 
     // Check for current calendar ID
-    fields['Calendar ID'] = await getExistingCalendarIdFromAirtable(session);
+    session = await getExistingCalendarIdFromAirtable(session);
+    fields = session.fields;
 
     const needsNewCalendar = !fields['Calendar ID'] || fields['Calendar ID'].trim().length === 0;
-
-    // Skipping calendar creation
-    if (needsNewCalendar)
-        return;
 
     // Check if session has an existing event
     const needsNewEvent = !(fields['Calendar ID'] && fields['Event ID'] && await hasGCEvent(fields['Calendar ID'], fields['Event ID']));
@@ -59,21 +58,24 @@ async function syncSplitSession(session: any): Promise<any> {
 
         newSession.fields['Cohort'] = [cohort];
         newSession.fields['Cohort Identifier'] = [session.fields['Cohort Identifier'][index]];
-        newSession.fields['Calendar Name'] = [normalizeAirtableField(session.fields['Calendar Name'])[index] ?? ''];
+        newSession.fields['Calendar Name'] = normalizeAirtableField(session.fields['Calendar Name'])[index] ?? '';
 
         if (session.fields['Calendar ID'])
-            newSession.fields['Calendar ID'] = [normalizeAirtableField(session.fields['Calendar ID'])[index] ?? ''];
+            newSession.fields['Calendar ID'] = normalizeAirtableField(session.fields['Calendar ID'])[index] ?? '';
 
         if (session.fields['Event ID'])
-            newSession.fields['Event ID'] = [normalizeAirtableField(session.fields['Event ID'])[index] ?? ''];
+            newSession.fields['Event ID'] = normalizeAirtableField(session.fields['Event ID'])[index] ?? '';
 
         if (session.fields['Calendar Event Link'])
-            newSession.fields['Calendar Event Link'] = [normalizeAirtableField(session.fields['Calendar Event Link'])[index] ?? ''];
+            newSession.fields['Calendar Event Link'] = normalizeAirtableField(session.fields['Calendar Event Link'])[index] ?? '';
 
         newSession.fields['Is Split Session'] = true;
+        newSession.fields['Split Index'] = index + 1; // Add index to differentiate split sessions
 
         return newSession;
     });
+
+    console.log(`[SYNC] Created ${splitSessions.length} split sessions for session ${id}:`, splitSessions);
 
     // Sync each split session individually
     let updatedSessions = [];
@@ -246,7 +248,7 @@ async function updateEvent(session: any): Promise<any> {
 // UTILITY FUNCTIONS
 
 // Normalize lookup table strings/arrays/csl from Airtable into array of strings
-function normalizeAirtableField(field: any): string[] {
+export function normalizeAirtableField(field: any): string[] {
     if (!field) return [];
     return [field].flat().join(',').split(',').map((item: string) => item.trim());
 }

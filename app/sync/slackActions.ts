@@ -36,7 +36,7 @@ export async function sendSlackMessage(type: 'event_create' | 'event_update' | '
             body[typedKey] = (body[typedKey] as unknown as string).split(',')[0] || '';
     }
 
-    body["percentageComplete"] = (editedSessions.length + createdSessions.length) + '/' + (length);
+    body["percentageComplete"] = (editedSessions.length + createdSessions.length + 1) + '/' + (length);
 
     // console.log(`[SLACK] Sending message to ${type} webhook:`, body);
 

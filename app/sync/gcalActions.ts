@@ -11,6 +11,7 @@ const auth = new google.auth.JWT({
     email: process.env.CLIENT_EMAIL,
     key: process.env.PRIVATE_KEY,
     scopes: SCOPES,
+    subject: 'skohlhorst@centercentre.com',
 });
 
 const calendar = google.calendar({ version: 'v3', auth });
@@ -32,7 +33,8 @@ export async function findGoogleCalendarByName(summary: string): Promise<string 
 }
 
 // Testing function to delete all service worker's calendars
-async function deleteAllCalendars() {
+export async function deleteAllCalendars() {
+    return;
     const res = await calendar.calendarList.list({
         auth,
     });
@@ -47,6 +49,27 @@ async function deleteAllCalendars() {
         });
         console.log(`[SYNC] Deleted calendar ${cal.summary} (${cal.id}).`);
     }
+}
+
+export async function listGoogleCalendars() {
+    await new Promise(resolve => setTimeout(resolve, CALENDAR_FIND_TIMEOUT));
+    const res = await calendar.calendarList.list({
+        auth,
+    });
+
+    const calendars = res.data.items || [];
+    const names = calendars.map(cal => cal.summary || '');
+    console.log(`[SYNC] Found ${calendars.length} calendars: ${names.join(', ')}`);
+
+    const firstCalEvents = await calendar.events.list({
+        calendarId: calendars[3]?.id || '',
+        timeMin: new Date(0).toISOString(),
+        maxResults: 10,
+        singleEvents: true,
+        orderBy: 'startTime',
+    });
+    const firstCalEventNames = firstCalEvents.data.items?.map(event => event.summary || '') || [];
+    console.log(`[SYNC] First calendar (${calendars[3]?.summary}) events: ${firstCalEventNames.join(', ')}`);
 }
 
 export async function createGoogleCalendar(session: any): Promise<string | null> {
@@ -98,8 +121,6 @@ export async function createGoogleCalendar(session: any): Promise<string | null>
             },
         });
     });
-
-
 
     return calendarId;
 }
@@ -158,8 +179,8 @@ export async function equivalentGCEventExists(
     dateTime: Date,
     summary: string
 ): Promise<string | null> {
-    const startTime = new Date((dateTime.getTime() - 1) * 60 * 1000).toISOString();
-    const endTime = new Date((dateTime.getTime() + 1) * 60 * 1000).toISOString();
+    const startTime = new Date(dateTime.getTime() - 1 * 60 * 1000).toISOString();
+    const endTime = new Date(dateTime.getTime() + 1 * 60 * 1000).toISOString();
 
     await new Promise(resolve => setTimeout(resolve, EVENT_FIND_TIMEOUT));
     const res = await calendar.events.list({
@@ -172,6 +193,9 @@ export async function equivalentGCEventExists(
     });
 
     const events = res.data.items || [];
+
+    if (!events[0]?.start?.dateTime || new Date(events[0]?.start?.dateTime).toISOString() !== dateTime.toISOString())
+        return null; // No equivalent event found
 
     return events[0]?.id || null; // Return the first event ID if found, otherwise null
 }
@@ -189,3 +213,32 @@ export async function deleteGCEvent(eventId: string, calendarId: string) {
     }
 }
 
+
+export async function addCalendarToList(calendarId: string) {
+    try {
+        await new Promise(resolve => setTimeout(resolve, CALENDAR_LIST_TIMEOUT));
+        await calendar.calendarList.insert({
+            requestBody: {
+                id: calendarId,
+            },
+        });
+
+        // Share the calendar with users
+        CALENDAR_OWNERS.forEach(async (owner) => {
+            await new Promise(resolve => setTimeout(resolve, CALENDAR_SHARE_TIMEOUT));
+            await calendar.acl.insert({
+                calendarId: calendarId ?? undefined,
+                requestBody: {
+                    scope: {
+                        type: 'user',
+                        value: owner,
+                    },
+                    role: 'owner',
+                },
+            });
+        });
+        console.log(`[SYNC] Added calendar ${calendarId} to the calendar list.`);
+    } catch (error) {
+        console.error(`[SYNC] Failed to add calendar ${calendarId} to the calendar list:`, error);
+    }
+}

@@ -1,7 +1,9 @@
 
 // SESSION TABLE
 
-import { AIRTABLE_TIMEOUT, createdSessions, editedCohorts, editedSessions } from "./route";
+import { addCalendarToList } from "./gcalActions";
+import { AIRTABLE_TIMEOUT, createdSessions, editedCohorts, editedSessions, FORCE_RESHARE } from "./route";
+import { normalizeAirtableField } from "./syncActions";
 
 const airtableBaseId = process.env.AIRTABLE_BASE_ID;
 const airtableTableId = process.env.AIRTABLE_TABLE_ID;
@@ -9,13 +11,15 @@ const airtableCohortTableId = process.env.AIRTABLE_COHORT_TABLE_ID;
 const airtableSyncTableId = process.env.AIRTABLE_SYNC_TABLE_ID;
 const airtableToken = process.env.AIRTABLE_TOKEN;
 
+let knownCalendarsIds: string[] = [];
+
 export async function fetchAirtableSessions(lastSyncTime: Date) {
     if (!airtableBaseId || !airtableTableId || !airtableToken)
         throw new Error('[AIRTABLE] Airtable credentials are not set');
 
 
     // Calculate hard cutoff time for retroactive updates
-    const cutoffTime = new Date();
+    let cutoffTime = new Date();
     cutoffTime.setFullYear(cutoffTime.getFullYear() - 1);
 
     const formula = `AND(IS_AFTER({Last Modified}, "${lastSyncTime.toISOString()}"), IS_AFTER({Date}, "${cutoffTime.toISOString()}"))`;
@@ -96,7 +100,7 @@ export async function saveEventIdToAirtable(session: any, saveSecondaryID: boole
 
 // COHORT TABLE
 
-export async function getExistingCalendarIdFromAirtable(session: any): Promise<string | null> {
+export async function getExistingCalendarIdFromAirtable(session: any): Promise<any | null> {
     if (!airtableBaseId || !airtableCohortTableId || !airtableToken)
         throw new Error('[AIRTABLE] Airtable credentials are not set');
 
@@ -125,7 +129,22 @@ export async function getExistingCalendarIdFromAirtable(session: any): Promise<s
     if (!cohortData || !cohortData.fields)
         throw new Error(`[AIRTABLE] Couldn't find cohort information for ${recordId}:`, session);
 
-    return cohortData.fields['Calendar ID'] || null;
+    if (cohortData.fields['Calendar ID'] && !knownCalendarsIds.includes(cohortData.fields['Calendar ID']) && FORCE_RESHARE) {
+        addCalendarToList(cohortData.fields['Calendar ID']);
+        knownCalendarsIds.push(cohortData.fields['Calendar ID']);
+        console.log(`[AIRTABLE] Added unfamiliar calendar ID ${cohortData.fields['Calendar ID']} to known calendars list.`);
+    }
+
+    if (cohortData.fields['Calendar ID']) {
+        const newCalId = cohortData.fields['Calendar ID'];
+
+        session.fields['Calendar ID'] = newCalId;
+        session.fields['Public Calendar Link'] = 'https://calendar.google.com/calendar/embed?src=' + newCalId;
+        session.fields['iCal Calendar Link'] = 'https://calendar.google.com/calendar/ical/' + newCalId + '/public/basic.ics';
+        session.fields['Direct Calendar Link'] = 'https://calendar.google.com/calendar/u/0?cid=' + newCalId;
+    }
+
+    return session;
 }
 
 export async function saveCalendarIdToAirtable(cohortRecordId: string, calendarId: string): Promise<any> {
