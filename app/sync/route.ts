@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // Perform the sync for each session
     for (const session of sessions)
-        await syncSession(session);
+        await syncSession(session, length);
 
 
     // Saving sync info

@@ -6,8 +6,12 @@ import { sendSlackMessage } from "./slackActions";
 
 // SESSION SYNC CONTROLS
 
-export async function syncSession(session: any) {
+let length = 0; // Total number of cohorts to sync
+
+export async function syncSession(session: any, numOfSessions: number) {
     let { id, fields } = session;
+
+    length = numOfSessions; // Set the total number of cohorts to sync
 
     // console.log(`[SYNC] Syncing session ${id} with fields:`, fields);
 
@@ -80,7 +84,7 @@ async function syncSplitSession(session: any): Promise<any> {
     // Sync each split session individually
     let updatedSessions = [];
     for (const splitSession of splitSessions)
-        updatedSessions.push(await syncSession(splitSession));
+        updatedSessions.push(await syncSession(splitSession, length));
 
 
     // Merge the Event IDs and Calendar Event Links back into the original session
@@ -118,12 +122,12 @@ async function syncTUXSSession(session: any): Promise<any> {
     session.fields['Is Split Session'] = true;
 
     // Sync each split session individually
-    session = await syncSession(session);
+    session = await syncSession(session, length);
 
     qaSession.fields['Calendar ID'] = session.fields['Calendar ID'];
     qaSession.fields['Calendar Event Link'] = session.fields['Calendar Event Link'];
 
-    qaSession = await syncSession(qaSession);
+    qaSession = await syncSession(qaSession, length);
 
 
 
