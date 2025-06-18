@@ -1,6 +1,6 @@
 import { getExistingCalendarIdFromAirtable, saveCalendarIdToAirtable, saveEventIdToAirtable } from "./airtableActions";
 import { createGoogleCalendar, createGCEvent, hasGCEvent, updateGCEvent } from "./gcalActions";
-import { createdSessions, editedCohorts, editedSessions } from "./settings";
+import { createdSessions, editedCohorts, editedSessions, editedCalendars } from "./settings";
 import { sendSlackMessage } from "./slackActions";
 
 
@@ -47,6 +47,7 @@ export async function syncSession(session: any, numOfSessions: number) {
     else
         session = await updateEvent(session);
 
+    editedCalendars.push({ number: 1, link: fields['Public Calendar Link'], name: fields['Calendar Name'] });
 
     return session;
 }
@@ -169,7 +170,6 @@ async function createCalendar(session: any): Promise<any> {
 
     sendSlackMessage('calendar_create', {
         calendarPublicLink: session.fields['Public Calendar Link'],
-        syncLink: process.env.SYNC_URL ?? '',
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],
@@ -205,7 +205,6 @@ async function createEvent(session: any): Promise<any> {
         eventSummary: session.fields.Title,
         eventLink: session.fields['Calendar Event Link'],
         calendarPublicLink: session.fields['Public Calendar Link'],
-        syncLink: process.env.SYNC_URL ?? '',
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],
@@ -234,7 +233,6 @@ async function updateEvent(session: any): Promise<any> {
         eventSummary: session.fields.Title,
         eventLink: session.fields['Calendar Event Link'],
         calendarPublicLink: session.fields['Public Calendar Link'],
-        syncLink: process.env.SYNC_URL ?? '',
         calendarSummary: session.fields['Calendar Name'],
         calendariCalLink: session.fields['iCal Calendar Link'],
         calendarDirectLink: session.fields['Direct Calendar Link'],

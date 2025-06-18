@@ -12,15 +12,21 @@ export const EVENT_DELETE_TIMEOUT = 1000 * 1;
 
 export const AIRTABLE_TIMEOUT = 1000 * 1 / 4;
 
+export const SLACK_REPEAT_TIMEOUT = 1000 * 1 / 4;
+
 
 export const CALENDAR_OWNERS = [
     'ayang@centercentre.com',
     'avelazquez@centercentre.com'
 ];
 
-export const FORCE_RESYNC = true;
+export const FORCE_RESYNC = false;
 export const FORCE_RESHARE = false;
 
 export const editedCohorts: string[] = [];
 export const createdSessions: string[] = [];
 export const editedSessions: string[] = [];
+
+export const editedCalendars: { name: string, number: number, link: string }[] = [];
+
+export const savedLastSync: (Date | null)[] = [];

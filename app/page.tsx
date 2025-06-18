@@ -1,11 +1,14 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
+  const params = useSearchParams();
 
   useEffect(() => {
-    fetch('/sync', { method: 'POST', });
+
+    fetch('/sync?' + params, { method: 'POST', });
   }, []);
 
   return (
