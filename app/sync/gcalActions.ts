@@ -1,8 +1,6 @@
 import { google } from 'googleapis';
-import { NextRequest } from 'next/server';
-import { fetchAirtableSessions, saveCalendarIdToAirtable, saveEventIdToAirtable } from './airtableActions';
-import { hasRequiredEventFields, createEventBody } from './syncActions';
 import { CALENDAR_CREATE_TIMEOUT, CALENDAR_DELETE_TIMEOUT, CALENDAR_FIND_TIMEOUT, CALENDAR_LIST_TIMEOUT, CALENDAR_OWNERS, CALENDAR_SHARE_TIMEOUT, EVENT_CREATE_TIMEOUT, EVENT_DELETE_TIMEOUT, EVENT_FIND_TIMEOUT, EVENT_GET_TIMEOUT, EVENT_UPDATE_TIMEOUT } from './settings';
+import { createEventBody } from './syncActions';
 
 // Authentication setup for Google Calendar API
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
@@ -237,6 +235,19 @@ export async function addCalendarToList(calendarId: string) {
                 },
             });
         });
+
+        // Share calendar with public
+        await new Promise(resolve => setTimeout(resolve, CALENDAR_SHARE_TIMEOUT));
+        await calendar.acl.insert({
+            calendarId: calendarId ?? undefined,
+            requestBody: {
+                scope: {
+                    type: 'default',
+                },
+                role: 'reader',
+            },
+        });
+
         console.log(`[SYNC] Added calendar ${calendarId} to the calendar list.`);
     } catch (error) {
         console.error(`[SYNC] Failed to add calendar ${calendarId} to the calendar list:`, error);

@@ -3,7 +3,6 @@
 
 import { addCalendarToList } from "./gcalActions";
 import { AIRTABLE_TIMEOUT, createdSessions, editedCohorts, editedSessions, FORCE_RESHARE } from "./settings";
-import { normalizeAirtableField } from "./syncActions";
 
 const airtableBaseId = process.env.AIRTABLE_BASE_ID;
 const airtableTableId = process.env.AIRTABLE_TABLE_ID;

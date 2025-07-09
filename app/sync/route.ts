@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { fetchAirtableSessions, getLastSync, saveSyncInfo } from "./airtableActions";
-import { syncSession } from "./syncActions";
+import { addCalendarToList } from "./gcalActions";
+import { FORCE_RESHARE, FORCE_RESYNC, createdSessions, editedSessions, savedLastSync } from "./settings";
 import { sendFinishedSlackMessage, sendSlackMessage } from "./slackActions";
-import { deleteAllCalendars, listGoogleCalendars } from "./gcalActions";
-import { FORCE_RESYNC, editedSessions, createdSessions, savedLastSync } from "./settings";
+import { normalizeAirtableField, syncSession } from "./syncActions";
 
 
 
@@ -55,6 +55,32 @@ export async function POST(request: NextRequest) {
         const dateB = new Date(b.fields.Date);
         return dateA.getTime() - dateB.getTime();
     });
+
+    // Manual Calendar Sync
+    if (FORCE_RESHARE) {
+        console.log('[SYNC] Forcing reshare of all calendars.');
+        const allSyncDate = new Date();
+        allSyncDate.setFullYear(allSyncDate.getFullYear() - 1); // Set a cutoff date for retroactive updates
+        let allSessions = await fetchAirtableSessions(allSyncDate);
+
+        // Sort sessions by date
+        allSessions.sort((a, b) => {
+            const dateA = new Date(a.fields.Date);
+            const dateB = new Date(b.fields.Date);
+            return dateA.getTime() - dateB.getTime();
+        });
+
+        const allCalendarIds = allSessions.map(s => normalizeAirtableField(s.fields['Calendar ID'])).flat().filter(id => id);
+        const uniqueCalendarIds = Array.from(new Set(allCalendarIds));
+
+        console.log(`[SYNC] Forcing reshare of all calendars. Found ${uniqueCalendarIds.length} calendars to reshare.`);
+
+        for (const calendarId of uniqueCalendarIds) {
+            await addCalendarToList(calendarId);
+            console.log(`[SYNC] Added calendar ID ${calendarId}.`);
+        }
+
+    }
 
 
     let length = sessions.map(s => s.fields['Cohort Identifier']).flat().length;
