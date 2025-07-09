@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { fetchAirtableSessions, getLastSync, saveSyncInfo } from "./airtableActions";
 import { addCalendarToList } from "./gcalActions";
-import { FORCE_RESHARE, FORCE_RESYNC, createdSessions, editedSessions, savedLastSync } from "./settings";
+import { FORCE_RESHARE, FORCE_RESYNC, createdSessions, editedCalendars, editedSessions, savedLastSync } from "./settings";
 import { sendFinishedSlackMessage, sendSlackMessage } from "./slackActions";
 import { normalizeAirtableField, syncSession } from "./syncActions";
 
@@ -16,6 +16,10 @@ export async function POST(request: NextRequest) {
     if (isInProgress)
         return new Response('Sync is already in progress.', { status: 429 });
     isInProgress = true;
+
+    editedCalendars.length = 0;
+    editedSessions.length = 0;
+    createdSessions.length = 0;
 
     const { searchParams } = new URL(request.url);
 
