@@ -86,17 +86,18 @@ export async function POST(request: NextRequest) {
 
     }
 
+    if (sessions.length === 0) {
+        console.log('[SYNC] No sessions to sync.');
+        isInProgress = false;
+        return new Response('No updates found to sync.', { status: 200 });
+    }
 
     let length = sessions.map(s => s.fields['Cohort Identifier']).flat().length;
     sendSlackMessage('sync_start', {
         numberEvents: length.toString(),
     }, (editedSessions.length + createdSessions.length + 1), length);
 
-    if (sessions.length === 0) {
-        console.log('[SYNC] No sessions to sync.');
-        isInProgress = false;
-        return new Response('No updates found to sync.', { status: 200 });
-    }
+
 
 
 
