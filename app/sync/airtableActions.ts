@@ -61,12 +61,27 @@ export async function fetchAirtableSessions(lastSyncTime: Date) {
     return records;
 }
 
-export async function saveEventIdToAirtable(session: any, saveSecondaryID: boolean = false): Promise<any> {
+export async function saveEventIdToAirtable(session: any, saveSecondaryID: boolean = false, syncToCentral: boolean = false): Promise<any> {
     if (!airtableBaseId || !airtableTableId || !airtableToken)
         throw new Error('[AIRTABLE] Airtable credentials are not set');
 
     if (!session || !session.id || !session.fields || !session.fields['Event ID'])
         throw new Error(`[AIRTABLE] Session ${session.id} is missing required fields for saving event ID:`, session);
+
+    let payload = JSON.stringify({
+        fields: {
+            'Event ID': [session.fields['Event ID']].flat().join(', '),
+            'Calendar Event Link': [session.fields['Calendar Event Link']].flat().join(', '),
+            'Secondary Event ID': saveSecondaryID ? session.fields['Secondary Event ID'] : undefined,
+        },
+    });
+
+    if (syncToCentral)
+        payload = JSON.stringify({
+            fields: {
+                'Central Event ID': [session.fields['Event ID']].flat().join(', '),
+            },
+        });
 
     await new Promise(resolve => setTimeout(resolve, AIRTABLE_TIMEOUT));
     const response = await fetch(`https://api.airtable.com/v0/${airtableBaseId}/${airtableTableId}/${session.id}`, {
@@ -75,13 +90,7 @@ export async function saveEventIdToAirtable(session: any, saveSecondaryID: boole
             Authorization: `Bearer ${airtableToken}`,
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            fields: {
-                'Event ID': [session.fields['Event ID']].flat().join(', '),
-                'Calendar Event Link': [session.fields['Calendar Event Link']].flat().join(', '),
-                'Secondary Event ID': saveSecondaryID ? session.fields['Secondary Event ID'] : undefined,
-            },
-        }),
+        body: payload,
     });
 
     if (!response.ok)

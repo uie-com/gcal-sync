@@ -1,6 +1,6 @@
 import { getExistingCalendarIdFromAirtable, saveCalendarIdToAirtable, saveEventIdToAirtable } from "./airtableActions";
-import { createGoogleCalendar, createGCEvent, hasGCEvent, updateGCEvent } from "./gcalActions";
-import { createdSessions, editedCohorts, editedSessions, editedCalendars } from "./settings";
+import { createGCEvent, createGoogleCalendar, hasGCEvent, updateGCEvent } from "./gcalActions";
+import { centralCalendarId, createdSessions, editedCalendars, editedCohorts, editedSessions } from "./settings";
 import { sendSlackMessage } from "./slackActions";
 
 
@@ -8,10 +8,13 @@ import { sendSlackMessage } from "./slackActions";
 
 let length = 0; // Total number of cohorts to sync
 
-export async function syncSession(session: any, numOfSessions: number) {
+export async function syncSession(session: any, totalSessions: number): Promise<any> {
+    if (!session.fields['Is Split Session'])
+        await syncToCentral(session);
+
     let { id, fields } = session;
 
-    length = numOfSessions; // Set the total number of cohorts to sync
+    length = totalSessions; // Set the total number of cohorts to sync
 
     // console.log(`[SYNC] Syncing session ${id} with fields:`, fields);
 
@@ -30,7 +33,6 @@ export async function syncSession(session: any, numOfSessions: number) {
     if (normalizedCohorts.length > 1)
         return await syncSplitSession(session);
 
-
     // Check for current calendar ID
     session = await getExistingCalendarIdFromAirtable(session);
     fields = session.fields;
@@ -48,6 +50,32 @@ export async function syncSession(session: any, numOfSessions: number) {
         session = await updateEvent(session);
 
     editedCalendars.push({ number: 1, link: fields['Public Calendar Link'], name: fields['Calendar Name'] });
+
+    return session;
+}
+
+async function syncToCentral(session: any): Promise<any> {
+    const oldEventId = session.fields['Event ID'];
+    const oldCalendarId = session.fields['Calendar ID'];
+    const oldTitle = session.fields['Title'];
+
+    session.fields['Calendar ID'] = centralCalendarId;
+    session.fields['Event ID'] = session.fields['Central Event ID'];
+    session.fields['Title'] = session.fields['Program'] + ': ' + oldTitle;
+    session.fields['Is Central Event'] = true;
+
+    const needsNewEvent = !(session.fields['Event ID'] && await hasGCEvent(session.fields['Calendar ID'], session.fields['Event ID']));
+
+    if (needsNewEvent)
+        session = await createEvent(session, true, true);
+    else
+        session = await updateEvent(session, true, true);
+
+    session.fields['Central Event ID'] = session.fields['Event ID'];
+    session.fields['Calendar ID'] = oldCalendarId;
+    session.fields['Event ID'] = oldEventId;
+    session.fields['Title'] = oldTitle;
+    session.fields['Is Central Event'] = false;
 
     return session;
 }
@@ -180,65 +208,70 @@ async function createCalendar(session: any): Promise<any> {
     return session;
 }
 
-async function createEvent(session: any): Promise<any> {
+async function createEvent(session: any, syncToCentral: boolean = false, ignoreStats: boolean = false): Promise<any> {
     if (!hasRequiredEventFields(session))
         throw new Error(`[SYNC] Session ${session.id} is missing required fields for event creation. Skipping.`);
-    console.log(`[SYNC] Creating event for session ${session.id} in calendar ${session.fields['Calendar Name']}.`);
+    console.log(`[SYNC] Creating event for session ${session.id} in calendar ${syncToCentral ? 'CC Programs' : session.fields['Calendar Name']}.`);
 
     const { id, link } = await createGCEvent(session);
 
     session.fields['Event ID'] = id;
-    session.fields['Calendar Event Link'] = link;
+    if (!syncToCentral)
+        session.fields['Calendar Event Link'] = link;
 
     // Save the event ID back to Airtable. Split sessions will save their event IDs together.
     if (!session.fields['Is Split Session'])
-        await saveEventIdToAirtable(session);
+        await saveEventIdToAirtable(session, false, syncToCentral);
 
-    sendSlackMessage('event_create', {
-        eventDate: new Date(session.fields.Date).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        }),
-        eventSummary: session.fields.Title,
-        eventLink: session.fields['Calendar Event Link'],
-        calendarPublicLink: session.fields['Public Calendar Link'],
-        calendarSummary: session.fields['Calendar Name'],
-        calendariCalLink: session.fields['iCal Calendar Link'],
-        calendarDirectLink: session.fields['Direct Calendar Link'],
-    }, (editedSessions.length + createdSessions.length + 1), length);
+    if (!ignoreStats) {
+        sendSlackMessage('event_create', {
+            eventDate: new Date(session.fields.Date).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+            eventSummary: session.fields.Title,
+            eventLink: session.fields['Calendar Event Link'],
+            calendarPublicLink: session.fields['Public Calendar Link'],
+            calendarSummary: session.fields['Calendar Name'],
+            calendariCalLink: session.fields['iCal Calendar Link'],
+            calendarDirectLink: session.fields['Direct Calendar Link'],
+        }, (editedSessions.length + createdSessions.length + 1), length);
 
-    createdSessions.push(session.id);
+        createdSessions.push(session.id);
+    }
 
     return session;
 }
 
-async function updateEvent(session: any): Promise<any> {
+async function updateEvent(session: any, syncToCentral: boolean = false, ignoreStats: boolean = false): Promise<any> {
     if (!hasRequiredEventFields(session))
         throw new Error(`[SYNC] Session ${session.id} is missing required fields for event update. Skipping.`);
-    console.log(`[SYNC] Updating event for session ${session.id} in calendar ${session.fields['Calendar Name']}.`);
+    console.log(`[SYNC] Updating event for session ${session.id} in calendar ${syncToCentral ? 'CC Programs' : session.fields['Calendar Name']}.`);
 
     await updateGCEvent(session);
 
-    sendSlackMessage('event_update', {
-        eventDate: new Date(session.fields.Date).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        }),
-        eventSummary: session.fields.Title,
-        eventLink: session.fields['Calendar Event Link'],
-        calendarPublicLink: session.fields['Public Calendar Link'],
-        calendarSummary: session.fields['Calendar Name'],
-        calendariCalLink: session.fields['iCal Calendar Link'],
-        calendarDirectLink: session.fields['Direct Calendar Link'],
-    }, (editedSessions.length + createdSessions.length + 1), length);
+    if (!ignoreStats) {
+        sendSlackMessage('event_update', {
+            eventDate: new Date(session.fields.Date).toLocaleDateString('en-US', {
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+            }),
+            eventSummary: session.fields.Title,
+            eventLink: session.fields['Calendar Event Link'],
+            calendarPublicLink: session.fields['Public Calendar Link'],
+            calendarSummary: session.fields['Calendar Name'],
+            calendariCalLink: session.fields['iCal Calendar Link'],
+            calendarDirectLink: session.fields['Direct Calendar Link'],
+        }, (editedSessions.length + createdSessions.length + 1), length);
 
-    editedSessions.push(session.id);
+        editedSessions.push(session.id);
+    }
 
     return session;
 }
@@ -270,6 +303,7 @@ export function createEventBody(session: any): any {
             dateTime: new Date(fields["End Date"]).toISOString(),
             timeZone: 'America/New_York',
         },
+        colorId: session.fields['Is Central Event'] ? fields.Color : undefined,
     };
 }
 
