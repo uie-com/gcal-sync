@@ -26,3 +26,10 @@ jobs:
 
       - name: Build Next.js application
         run: npm run build # Or yarn build / pnpm build
+
+      - name: Commit .next directory
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Build: Commit .next directory"
+          file_pattern: ".next/"
+          repository: .
