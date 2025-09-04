@@ -21,7 +21,7 @@ export async function fetchAirtableSessions(lastSyncTime: Date) {
     let cutoffTime = new Date();
     cutoffTime.setFullYear(cutoffTime.getFullYear() - 1);
 
-    const formula = `AND(IS_AFTER({Last Modified}, "${lastSyncTime.toISOString()}"), IS_AFTER({Date}, "${cutoffTime.toISOString()}"))`;
+    const formula = `AND(OR({Published} = 'Published', {Published} = ''), AND(IS_AFTER({Last Modified}, "${lastSyncTime.toISOString()}"), IS_AFTER({Date}, "${cutoffTime.toISOString()}")))`;
 
     console.log(`[AIRTABLE] Fetching sessions edited after ${lastSyncTime.toISOString()} and set after ${cutoffTime.toISOString()}.`);
 
@@ -73,7 +73,9 @@ export async function saveEventIdToAirtable(session: any, saveSecondaryID: boole
             'Event ID': [session.fields['Event ID']].flat().join(', '),
             'Calendar Event Link': [session.fields['Calendar Event Link']].flat().join(', '),
             'Secondary Event ID': saveSecondaryID ? session.fields['Secondary Event ID'] : undefined,
+            'Has MN Event': 'Yes',
         },
+        typecast: true, // Enable typecasting for fields
     });
 
     if (syncToCentral)

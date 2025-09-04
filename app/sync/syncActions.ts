@@ -1,5 +1,6 @@
 import { getExistingCalendarIdFromAirtable, saveCalendarIdToAirtable, saveEventIdToAirtable } from "./airtableActions";
 import { createGCEvent, createGoogleCalendar, hasGCEvent, updateGCEvent } from "./gcalActions";
+import { createMNEvent, needsMNEvent } from "./mnActions";
 import { centralCalendarId, createdSessions, editedCalendars, editedCohorts, editedSessions } from "./settings";
 import { sendSlackMessage } from "./slackActions";
 
@@ -38,6 +39,10 @@ export async function syncSession(session: any, totalSessions: number): Promise<
     fields = session.fields;
 
     const needsNewCalendar = !fields['Calendar ID'] || fields['Calendar ID'].trim().length === 0;
+
+    // Create a MN event if applicable
+    if (needsMNEvent(session))
+        session = await createMNEvent(session);
 
     // Check if session has an existing event
     const needsNewEvent = !(fields['Calendar ID'] && fields['Event ID'] && await hasGCEvent(fields['Calendar ID'], fields['Event ID']));
