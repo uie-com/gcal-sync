@@ -32,7 +32,9 @@ export async function findGoogleCalendarByName(summary: string): Promise<string 
 
 // Testing function to delete all service worker's calendars
 export async function deleteAllCalendars() {
-    return;
+    return console.log('You really messed up. Find someone to help you.');
+    // Disabled by default to prevent accidental mass deletions
+
     const res = await calendar.calendarList.list({
         auth,
     });
