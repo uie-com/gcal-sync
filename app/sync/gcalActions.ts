@@ -9,7 +9,7 @@ const auth = new google.auth.JWT({
     email: process.env.CLIENT_EMAIL,
     key: process.env.PRIVATE_KEY,
     scopes: SCOPES,
-    subject: 'skohlhorst@centercentre.com',
+    subject: 'avelazquez@centercentre.com',
 });
 
 const calendar = google.calendar({ version: 'v3', auth });
