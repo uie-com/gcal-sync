@@ -3,8 +3,6 @@
 The **Google Calendar Sync Utility** automatically creates and updates **Google Calendars and events** based on session data stored in Airtable.  
 It ensures every cohort’s calendar stays synchronized as dates, times, and topics change — no manual updates required.
 
----
-
 ## 🧭 Overview
 
 The Sync Utility reads data from the **Programs Airtable**, where sessions for each cohort are managed.  
@@ -16,8 +14,6 @@ When sessions are **published**, it automatically:
 
 All synced calendars can be viewed in the **🧑‍🧑‍🧒‍🧒 Cohort Settings** tab of the  
 **Programs – Google Calendars** Airtable.
-
----
 
 ## 🚀 How to Use
 
@@ -50,8 +46,6 @@ To change how sessions appear in Google Calendar (titles, durations, description
   **Programs – Google Calendars** Airtable.  
 - No code changes are required — the app simply uses the computed fields.
 
----
-
 ## ⚙️ How It Works
 
 ### Hosting
@@ -76,8 +70,6 @@ There is one main endpoint:
 POST https://gcal.centercentre.com/sync?resync=2025-10-08T14:00:00Z
 ```
 
----
-
 ## 🧩 Data Sources
 
 ### Airtable Integration
@@ -90,8 +82,6 @@ The Sync Utility relies on three connected Airtable bases:
 
 If data seems stale, you can manually refresh each linked table in Airtable:  
 **Click the table name → Start Sync**.
-
----
 
 ## 🔗 Data Relationships
 
@@ -115,8 +105,6 @@ All events are also synced to a unified **CC Programs** calendar, with colors as
 A record of every successful run is saved to the  
 **📓 Sync History** table.
 
----
-
 ## 🧠 Internal Workflow (Simplified)
 
 After filtering sessions that have changed since the last sync:
@@ -135,8 +123,6 @@ After filtering sessions that have changed since the last sync:
    - Notify Slack of each action.
 3. Merge split event IDs as needed.
 4. Save the run to **Sync History** and post a summary to Slack.
-
----
 
 ## 🔐 Integrations & Permissions
 
@@ -162,8 +148,6 @@ After filtering sessions that have changed since the last sync:
 ### Rate-Limiting
 - API calls (Airtable, Google, Slack) are throttled with delays set in  
   `settings.ts` to prevent exceeding API quotas.
-
----
 
 ## 🧑‍💻 Local Development
 
@@ -201,8 +185,6 @@ Typical variables include:
 The app is deployed to the **CenterCentre Droplet**.  
 See [CC Droplet Docs](https://www.notion.so/CC-Droplet-285903316fdd808f9d2def5d7f44c9a8) for production steps.
 
----
-
 ## 🗂️ Airtable Schema
 
 Field names are **exact** (case-sensitive) and should match verbatim.
@@ -217,31 +199,31 @@ Each record represents **one session occurrence** that becomes one or more Googl
 
 | Field                          | Type                                                | Required | Notes |
 |---|---|---|---|
-| {{backtick}}Published{{backtick}}               | Single select or Single line text                    | ✅ | Records sync when value is {{backtick}}"Published"{{backtick}} or blank. |
-| {{backtick}}Last Modified{{backtick}}           | Last modified time                                   | ✅ | Used to fetch only sessions edited after the last sync. |
-| {{backtick}}Date{{backtick}}                    | Date/Time (with timezone)                            | ✅ | Event start; must be valid ISO date-time. |
-| {{backtick}}End Date{{backtick}}                | Date/Time (with timezone)                            | ✅ | Event end; must be valid ISO date-time. |
-| {{backtick}}Title{{backtick}}                   | Single line text                                     | ✅ | Used as Google Calendar event {{backtick}}summary{{backtick}}. |
-| {{backtick}}Description{{backtick}}             | Long text                                            | ✅ | Used as Google Calendar event {{backtick}}description{{backtick}}. |
-| {{backtick}}Location{{backtick}}                | Single line text                                     | ✅ | Used as Google Calendar event {{backtick}}location{{backtick}}. |
-| {{backtick}}Calendar Name{{backtick}}           | Single line text **or** Lookup/Rollup (array-like)   | ✅ | Required to create calendars and for notifications; supports per-cohort names for split sessions. |
-| {{backtick}}Cohort Identifier{{backtick}}       | Link to {{backtick}}Cohorts{{backtick}} table (1+)   | ✅ | First linked record ID is used to fetch/save calendar info. |
-| {{backtick}}Program{{backtick}}                 | Single line text or Single select                    | ✅ | Routing logic (e.g., detects {{backtick}}TUXS{{backtick}}); also prepended for central calendar titles. |
-| {{backtick}}Cohort{{backtick}}                  | Lookup/Rollup or Multi-select (array-like)           | Required for multi-cohort sessions | Used to split a session across multiple cohorts; length must align with {{backtick}}Cohort Identifier{{backtick}}. |
-| {{backtick}}Secondary Title{{backtick}}         | Single line text                                     | Required for TUXS | Used for TUXS Q&A event title. |
-| {{backtick}}Secondary Description{{backtick}}   | Long text                                            | Required for TUXS | Used for TUXS Q&A event description. |
-| {{backtick}}Secondary End Date{{backtick}}      | Date/Time (with timezone)                            | Required for TUXS | Used for TUXS Q&A event end time. |
-| {{backtick}}Color{{backtick}}                   | Number or Single select (Google colorId)             | Optional | Applied when creating/updating **central** events only. |
+| `Published`               | Single select or Single line text                    | ✅ | Records sync when value is `"Published"` or blank. |
+| `Last Modified`           | Last modified time                                   | ✅ | Used to fetch only sessions edited after the last sync. |
+| `Date`                    | Date/Time (with timezone)                            | ✅ | Event start; must be valid ISO date-time. |
+| `End Date`                | Date/Time (with timezone)                            | ✅ | Event end; must be valid ISO date-time. |
+| `Title`                   | Single line text                                     | ✅ | Used as Google Calendar event `summary`. |
+| `Description`             | Long text                                            | ✅ | Used as Google Calendar event `description`. |
+| `Location`                | Single line text                                     | ✅ | Used as Google Calendar event `location`. |
+| `Calendar Name`           | Single line text **or** Lookup/Rollup (array-like)   | ✅ | Required to create calendars and for notifications; supports per-cohort names for split sessions. |
+| `Cohort Identifier`       | Link to `Cohorts` table (1+)   | ✅ | First linked record ID is used to fetch/save calendar info. |
+| `Program`                 | Single line text or Single select                    | ✅ | Routing logic (e.g., detects `TUXS`); also prepended for central calendar titles. |
+| `Cohort`                  | Lookup/Rollup or Multi-select (array-like)           | Required for multi-cohort sessions | Used to split a session across multiple cohorts; length must align with `Cohort Identifier`. |
+| `Secondary Title`         | Single line text                                     | Required for TUXS | Used for TUXS Q&A event title. |
+| `Secondary Description`   | Long text                                            | Required for TUXS | Used for TUXS Q&A event description. |
+| `Secondary End Date`      | Date/Time (with timezone)                            | Required for TUXS | Used for TUXS Q&A event end time. |
+| `Color`                   | Number or Single select (Google colorId)             | Optional | Applied when creating/updating **central** events only. |
 
 **Fields written/updated by the sync:**
 
 | Field                          | Type                         | Required | Written When | Value |
 |---|---|---|---|---|
-| {{backtick}}Event ID{{backtick}}                | Single line text (or Long text) | ⚠️ Yes for write | On create/update | If multiple IDs (split/multi-part), joined with {{backtick}}, {{backtick}} + space. |
-| {{backtick}}Calendar Event Link{{backtick}}     | URL or Single line text          | Optional         | On create/update | Direct link to the Google Calendar event. |
-| {{backtick}}Secondary Event ID{{backtick}}      | Single line text                 | Optional         | When TUXS second event is created | Stores the secondary event’s ID. |
-| {{backtick}}Has MN Event{{backtick}}            | Single select or Checkbox        | Optional         | On create/update | Set to string {{backtick}}"Yes"{{backtick}} by code when present. |
-| {{backtick}}Central Event ID{{backtick}}        | Single line text                 | Optional         | When syncing to central calendar | Mirrors the current event ID for the central calendar. |
+| `Event ID`                | Single line text (or Long text) | ⚠️ Yes for write | On create/update | If multiple IDs (split/multi-part), joined with `, ` + space. |
+| `Calendar Event Link`     | URL or Single line text          | Optional         | On create/update | Direct link to the Google Calendar event. |
+| `Secondary Event ID`      | Single line text                 | Optional         | When TUXS second event is created | Stores the secondary event’s ID. |
+| `Has MN Event`            | Single select or Checkbox        | Optional         | On create/update | Set to string `"Yes"` by code when present. |
+| `Central Event ID`        | Single line text                 | Optional         | When syncing to central calendar | Mirrors the current event ID for the central calendar. |
 
 **Fetch Filter (as used by the app):**
 
@@ -263,8 +245,6 @@ AND(
 ```
 
 > Note: The code paginates through results using Airtable’s `offset` and waits `AIRTABLE_TIMEOUT` ms between calls.
-
----
 
 ### 2) Cohorts Table  `(AIRTABLE_COHORT_TABLE_ID)`
 
@@ -310,8 +290,6 @@ When a new calendar is created, the app writes it back via `PATCH`:
   ]
 }
 ```
-
----
 
 ### 3) Sync History Table  `(AIRTABLE_SYNC_TABLE_ID)`
 
