@@ -16,8 +16,9 @@ export const SLACK_REPEAT_TIMEOUT = 1000 * 1 / 4;
 
 
 export const CALENDAR_OWNERS = [
-    'ayang@centercentre.com',
-    'avelazquez@centercentre.com'
+    'jquinn@centercentre.com',
+    'jdunn@centercentre.com',
+    'avelazquez@centercentre.com',
 ];
 
 export const FORCE_RESYNC = false; // Force resync all sessions and cohorts
