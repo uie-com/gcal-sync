@@ -298,7 +298,7 @@ export function createEventBody(session: any): any {
     return {
         summary: fields.Title,
         description: fields.Description,
-        location: fields.Location,
+        location: fields.Location ?? undefined,
         start: {
             dateTime: new Date(fields.Date).toISOString(),
             timeZone: 'America/New_York',
@@ -319,7 +319,7 @@ export function hasRequiredEventFields(session: any): boolean {
         && fields['End Date'] && !isNaN(new Date(fields['End Date']).getTime())
         && fields.Title
         && fields.Description
-        && fields.Location
+        // && fields.Location
         && fields['Calendar Name']
         && fields['Calendar ID'];
 }
